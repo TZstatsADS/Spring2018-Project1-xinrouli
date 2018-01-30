@@ -1,0 +1,89 @@
+---
+title: "Xinrou Li R Notebook"
+output: html_notebook
+---
+
+# What is the difference between Democratic and Republican?
+
+```{r, warning=FALSE}
+# load packages
+# Sys.setenv(JAVA_HOME='C:\\Program Files\\Java\\jre7')
+library(xlsx)
+library(dplyr)
+
+
+```
+
+# 
+
+```{r, warning=FALSE}
+#################### load dataset
+
+# inaug.info
+inaug.info <- read.xlsx("../data/InaugurationInfo.xlsx", 1, stringsAsFactors = FALSE)
+
+# inaug.dates
+inaug.dates <- read.table("../data/InauguationDates.txt", sep = ",", stringsAsFactors = FALSE, fill = TRUE)
+
+# inaug.speech
+fpath <- file.path("~", "GitHub", "Spring2018-Project1-xinrouli", "data", "InauguralSpeeches") 
+file.name <- dir(fpath)
+
+speech <- c()
+
+for (j in file.name){
+  location <- paste("../data/InauguralSpeeches/", j, sep = "")
+  speech[j] <- paste(readLines(location, n=-1, skipNul=TRUE), collapse=" ")
+}
+
+inaug.speech <- data.frame(file.name, speech, stringsAsFactors = FALSE)
+
+```
+
+# Merge Dataset
+
+```{r}
+rownames(inaug.speech) <- NULL
+substr.func <- function(df){
+  return(substr(df[1], start = 6, stop = nchar(df[1])-4))
+}
+inaug.speech$file.name <- apply(inaug.speech, 1, substr.func)
+
+paste.func <- function(df){
+  return(paste(df[2], "-", df[3], sep = ""))
+}
+inaug.info$file.name <- apply(inaug.info, 1, paste.func)
+
+inaug <- merge(x = inaug.info, y = inaug.speech, by.x = "file.name", by.y = "file.name")
+
+inaug$speech <- strsplit(inaug$speech, split = '(\\s|[[:punct:]])+')
+```
+
+
+
+```{r}
+
+```
+
+
+
+```{r}
+
+```
+
+```{r}
+
+```
+
+```{r}
+
+```
+
+```{r}
+
+```
+
+```{r}
+
+```
+
