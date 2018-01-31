@@ -1,33 +1,60 @@
 ---
-title: "Xinrou Li R Notebook"
+title: " What is the difference between Democratic and Republican?"
 output: html_notebook
 ---
 
-# What is the difference between Democratic and Republican?
+The two-party system is one of the most significant features in the American politics. Democratic Party and Republican Party are the two parties in America. However, are there any differences between the inauguration speech from the two parties? Thus, I did some text mining and natural language analysis.
 
-```{r, warning=FALSE}
-# load packages
-# Sys.setenv(JAVA_HOME='C:\\Program Files\\Java\\jre7')
-library(xlsx)
-library(dplyr)
+# Step.0 Loading Packages
 
+```{r, echo = FALSE, message = FALSE, warning=FALSE}
+packages.used=c("qdap", "xlsx", "dplyr", 
+                "tm", "wordcloud",
+                "tidytext","dplyr",
+                "syuzhet", "ggplot2")
+# check packages that need to be installed.
+packages.needed=setdiff(packages.used, 
+                        intersect(installed.packages()[,1], 
+                                  packages.used))
+# install additional packages
+if(length(packages.needed)>0){
+  install.packages(packages.needed, dependencies = TRUE,
+                   repos='http://cran.us.r-project.org')
+}
 
 ```
 
-# 
+```{r, message = FALSE, warning=FALSE}
+# In my laptop, I need to run the code below to library qdap and xlsx packages
+Sys.setenv(JAVA_HOME='C:\\Program Files\\Java\\jre7')
+library(qdap)
+library(xlsx)
+library(dplyr)
+library(tm)
+library(wordcloud)
+library(dplyr)
+library(tidytext)
+library(syuzhet)
+library(ggplot2)
+```
 
-```{r, warning=FALSE}
-#################### load dataset
+# Step.1 Loading, Merging and Spliting Datasets
 
+First, I loaded all inauguration speech text files from the InauguralSpeeches folder, and loaded the "InaugurationInfo.xlsx". Also, I made a new file called "inaug.dates.csv", including the date of inauguration speech and the name of the Presidents. Then, I combine the three dataset into one dataset in order to better use the infomation in the three dataset.
+
+```{r, message = FALSE, warning=FALSE}
 # inaug.info
 inaug.info <- read.xlsx("../data/InaugurationInfo.xlsx", 1, stringsAsFactors = FALSE)
 
 # inaug.dates
-inaug.dates <- read.table("../data/InauguationDates.txt", sep = ",", stringsAsFactors = FALSE, fill = TRUE)
+inaug.dates <- read.csv("../data/inaug.dates.csv")
 
 # inaug.speech
-fpath <- file.path("~", "GitHub", "Spring2018-Project1-xinrouli", "data", "InauguralSpeeches") 
-file.name <- dir(fpath)
+file.name <- dir(path = "..\\data\\InauguralSpeeches\\")
+```
+
+
+```{r, echo = FALSE, message = FALSE, warning=FALSE}
 
 speech <- c()
 
@@ -40,50 +67,214 @@ inaug.speech <- data.frame(file.name, speech, stringsAsFactors = FALSE)
 
 ```
 
-# Merge Dataset
 
-```{r}
+```{r, echo = FALSE, message = FALSE, warning = FALSE}
 rownames(inaug.speech) <- NULL
 substr.func <- function(df){
   return(substr(df[1], start = 6, stop = nchar(df[1])-4))
 }
 inaug.speech$file.name <- apply(inaug.speech, 1, substr.func)
 
-paste.func <- function(df){
+paste.func.info <- function(df){
   return(paste(df[2], "-", df[3], sep = ""))
 }
-inaug.info$file.name <- apply(inaug.info, 1, paste.func)
+inaug.info$file.name <- apply(inaug.info, 1, paste.func.info)
 
-inaug <- merge(x = inaug.info, y = inaug.speech, by.x = "file.name", by.y = "file.name")
+paste.func.dates <- function(df){
+  return(paste(df[1], "-", df[3], sep = ""))
+}
+inaug.dates$file.name <- apply(inaug.dates, 1, paste.func.dates)
 
-inaug$speech <- strsplit(inaug$speech, split = '(\\s|[[:punct:]])+')
-```
+inaug.info.speech <- merge(x = inaug.info, y = inaug.speech, by.x = "file.name", by.y = "file.name")
 
+inaug <- merge(x = inaug.info.speech, y = inaug.dates, by.x = "file.name", by.y = "file.name")
 
+# in order to use ggplot 
+inaug$Dates <- as.Date(inaug$Dates, format='%m/%d/%Y')
+inaug$Words <- as.numeric(inaug$Words)
 
-```{r}
+# in order to use Corpus, DataframeSource
+names(inaug)[names(inaug) == "file.name"] <- "doc_id"
+names(inaug)[names(inaug) == "speech"] <- "text"
 
-```
-
-
-
-```{r}
-
-```
-
-```{r}
-
-```
-
-```{r}
+# select useful columns in inaug
+inaug <- inaug %>% select(doc_id, text, Words, Dates, President, Party, File.x, Term.x)
 
 ```
 
-```{r}
+Then,I splited the dataset into two subsets, so that one only contains the all information about Democratic Party, and the other only contains the all information about Republican Party. We can start our analysis by using the two datasets!
+
+```{r, message = FALSE, warning=FALSE}
+
+inaug.demo <- inaug[inaug$Party == "Democratic", ]
+inaug.repu <- inaug[inaug$Party == "Republican", ]
+```
+
+# Step.2 Word Cloud
+
+Let's look at the word cloud first! It is obviously that the two parties used very different words in their speech, because in the two word clouds, the words are not the same. From the first wods cloud, we can see that the most frequent used words by Democratics are "people", "will", "government", "nation", "can", and so on. However, Republican often use "stringent", "farms", "regional", "marks", "bond" and so on.
+
+```{r, echo = FALSE, message = FALSE, warning=FALSE}
+demo.all<-Corpus(DataframeSource(inaug.demo))
+repu.all<-Corpus(DataframeSource(inaug.repu))
+```
+
+Democratic Word Cloud
+```{r, echo = FALSE, fig.height=6, fig.width=6}
+# Democratic
+demo.all<-tm_map(demo.all, stripWhitespace)
+demo.all<-tm_map(demo.all, content_transformer(tolower))
+demo.all<-tm_map(demo.all, removeNumbers)
+demo.all<-tm_map(demo.all, removeWords, stopwords("english"))
+demo.all<-tm_map(demo.all, removeWords, character(0))
+demo.all<-tm_map(demo.all, removePunctuation)
+
+tdm.demo.all<-TermDocumentMatrix(demo.all)
+tdm.demo.tidy=tidy(tdm.demo.all)
+tdm.demo.overall=summarise(group_by(tdm.demo.tidy, term), sum(count))
+
+# Inspect an wordcloud
+
+wordcloud(tdm.demo.overall$term, tdm.demo.overall$`sum(count)`,
+          scale=c(5,0.5),
+          max.words=100,
+          min.freq=1,
+          random.order=FALSE,
+          rot.per=0.3,
+          use.r.layout=T,
+          random.color=FALSE,
+          colors=brewer.pal(9,"Blues"))
+
+# compute TF-IDF weighted document-term matrices for individual Democratic speeches
+demo.dtm <- DocumentTermMatrix(demo.all,
+                          control = list(weighting = function(x)
+                                             weightTfIdf(x, 
+                                                         normalize =FALSE),
+                                         stopwords = TRUE))
+demo.dtm=tidy(demo.dtm)
+
+demo.dtm.order <- demo.dtm[order(demo.dtm$count, decreasing = TRUE), ]
+# head(demo.dtm.order, 10)
+```
+Republican Word Cloud
+```{r, echo = FALSE, fig.height=6, fig.width=6}
+# Republican
+repu.all<-tm_map(repu.all, stripWhitespace)
+repu.all<-tm_map(repu.all, content_transformer(tolower))
+repu.all<-tm_map(repu.all, removeNumbers)
+repu.all<-tm_map(repu.all, removeWords, stopwords("english"))
+repu.all<-tm_map(repu.all, removeWords, character(0))
+repu.all<-tm_map(repu.all, removePunctuation)
+
+tdm.repu.all<-TermDocumentMatrix(repu.all)
+tdm.repu.tidy=tidy(tdm.repu.all)
+tdm.repu.overall=summarise(group_by(tdm.repu.tidy, term), sum(count))
+
+# Inspect an wordcloud
+wordcloud(tdm.repu.overall$term, tdm.demo.overall$`sum(count)`,
+          scale=c(5,0.5),
+          max.words=100,
+          min.freq=1,
+          random.order=FALSE,
+          rot.per=0.3,
+          use.r.layout=T,
+          random.color=FALSE,
+          colors=brewer.pal(9,"Blues"))
+
+# compute TF-IDF weighted document-term matrices for individual Republican speeches
+repu.dtm <- DocumentTermMatrix(repu.all,
+                          control = list(weighting = function(x)
+                                             weightTfIdf(x, 
+                                                         normalize =FALSE),
+                                         stopwords = TRUE))
+repu.dtm=tidy(repu.dtm)
+
+repu.dtm.order <- repu.dtm[order(repu.dtm$count, decreasing = TRUE), ]
+# head(repu.dtm.order, 10)
 
 ```
 
-```{r}
+Although, the words used by Democratic and Republican seems look like not the same, we may want to ask "are the words' sentiemnts also different?" Thus, I used the NRC Sentiment here, and calculated the word frequencies in each eight different sentiments, in NRC. 
+
+# Step.4 NRC Words Sentiments
+
+```{r, echo = FALSE, message = FALSE, warning=FALSE}
+# Democratic NRC Sentiment
+demo.emotion.nrc <- merge(x = tdm.demo.overall, y = get_sentiments("nrc"), by.x = "term", by.y = "word")
+names(demo.emotion.nrc)[names(demo.emotion.nrc) == "sum(count)"] <- "Frequency"
+demo.sum.emotion.nrc <- demo.emotion.nrc %>% 
+                        select(Frequency, sentiment) 
+# colSums(table(demo.sum.emotion.nrc))
+barplot(colSums(table(demo.sum.emotion.nrc)), col = "lightskyblue1",
+        main = "Democratic Word Frequency VS Word Sentiment",
+        ylab = "Frequency", xlab = "Sentiment",
+        border = NA, cex.names=0.7)
+```
+
+```{r, echo = FALSE, message = FALSE, warning=FALSE}
+# Republican NRC Sentiment
+repu.emotion.nrc <- merge(x = tdm.repu.overall, y = get_sentiments("nrc"), by.x = "term", by.y = "word")
+names(repu.emotion.nrc)[names(repu.emotion.nrc) == "sum(count)"] <- "Frequency"
+repu.sum.emotion.nrc <- repu.emotion.nrc %>% 
+                        select(Frequency, sentiment) 
+# colSums(table(repu.sum.emotion.nrc))
+barplot(colSums(table(repu.sum.emotion.nrc)), col = "lightskyblue1",
+        main = "Republican Word Frequency VS Word Sentiment",
+        ylab = "Frequency", xlab = "Sentiment",
+        border = NA, cex.names=0.7)
+```
+
+From the two plots above, we find that the word frequency in different sentiments from the two parties are almost the same. Both of parties used the positive terms most, and used the disgust and surprise terms less. Is the result related to the sentiment lexicons, NRC? so I changed to use the Afinn sentiment lexicon, and did a similar pair of graphs below.
+
+# Step.5 Afinn Words Sentiments
+
+```{r, echo = FALSE, message = FALSE, warning=FALSE}
+# Democratic Afinn Sentiment
+# head(get_sentiments("afinn"))
+demo.emotion.af <- merge(x = tdm.demo.overall, y = get_sentiments("afinn"), by.x = "term", by.y = "word")
+names(demo.emotion.af)[names(demo.emotion.af) == "sum(count)"] <- "Frequency"
+demo.sum.emotion.af <- demo.emotion.af %>% 
+                       select(Frequency, score) 
+# colSums(table(demo.sum.emotion.af))
+barplot(colSums(table(demo.sum.emotion.af)), col = "lightskyblue3",
+        main = "Democratic Word Frequency VS Word Sentiment Score",
+        ylab = "Frequency", xlab = "Sentiment Score",
+        border = NA, cex.names=1)
 
 ```
 
+```{r, echo = FALSE, message = FALSE, warning=FALSE}
+# Republican Afinn Sentiment
+# head(get_sentiments("afinn"))
+repu.emotion.af <- merge(x = tdm.repu.overall, y = get_sentiments("afinn"), by.x = "term", by.y = "word")
+names(repu.emotion.af)[names(repu.emotion.af) == "sum(count)"] <- "Frequency"
+repu.sum.emotion.af <- repu.emotion.af %>% 
+                       select(Frequency, score) 
+# colSums(table(repu.sum.emotion.af))
+barplot(colSums(table(repu.sum.emotion.af)), col = "lightskyblue3",
+        main = "Republican Word Frequency VS Word Sentiment Score",
+        ylab = "Frequency", xlab = "Sentiment Score",
+        border = NA, cex.names = 1)
+
+```
+
+The two graphs are also almost the same, except the Repulican used a slightly more terms with 5 point. The words with a higher absolute value have a stronger emotion than the words with lower absolute value. Thus, we can say that even though the two parties used different words in their inaugural speeches, the words frequencies in sentiments are the same. 
+
+# Step.6 Number of Words Used in Inaugral Speeches
+
+Besides, the relationship between the words and the words sentiments, we can also study if there is any difference in the number of words used in inaugral Speeches between the two parties. I plot a graph which is the inaugural speeches' dates against the number of words used in that date. 
+
+The blue dots indicate the Democratic, and the red dots indicate the Repulican.
+
+
+```{r, echo = FALSE, message = FALSE, warning=FALSE}
+ggplot() + 
+  geom_point(data = inaug.demo, aes(x = Dates, y = Words), color = "blue") +
+  geom_point(data = inaug.repu, aes(x = Dates, y = Words), color = "red") +
+  labs(title = "Inaugural Dates vs Words Between two Parties", 
+       x = "Inaugural Dates", y = "Inaugural Words")
+```
+
+We can see the variace in the number of words is large at the begining. Some speeches have more than 4000 words, but some speeches have less than 1000 words. However, after 1950, the number of words are approximately around 2000 in both both parties. We can see there is probably a trend, which both parties will have similar the number of words in their speeches.
+
+Above all, we find there are some differences and similarities between the two parties, Democratic and Repulican. For example, the words in inaugural speeches between the two parties are different, but the words sentiments are very similar, and also the number of words in speeches tends to be the same. 
