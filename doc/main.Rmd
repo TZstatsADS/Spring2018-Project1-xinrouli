@@ -3,7 +3,7 @@ title: " What is the difference between Democratic and Republican?"
 output: html_notebook
 ---
 
-The two-party system is one of the most significant features in the American politics. Democratic Party and Republican Party are the two parties in America. However, are there any differences between the inauguration speech from the two parties? Thus, I did some text mining and natural language analysis.
+The two-party system is one of the most significant features in the American politics. Democratic Party and Republican Party are the two parties in America. However, are there any differences between the inauguration speeches from the two parties? Thus, I did some text mining and natural language analysis.
 
 # Step.0 Loading Packages
 
@@ -40,7 +40,7 @@ library(ggplot2)
 
 # Step.1 Loading, Merging and Spliting Datasets
 
-First, I loaded all inauguration speech text files from the InauguralSpeeches folder, and loaded the "InaugurationInfo.xlsx". Also, I made a new file called "inaug.dates.csv", including the date of inauguration speech and the name of the Presidents. Then, I combine the three dataset into one dataset in order to better use the infomation in the three dataset.
+First, I loaded all inauguration speech text files from the InauguralSpeeches folder, and loaded the "InaugurationInfo.xlsx". Also, I made a new file called "inaug.dates.csv", including the dates for each inauguration speech and the names for each Presidents. Then, I combined the three dataset into one dataset in order to better use the infomation in the three dataset.
 
 ```{r, message = FALSE, warning=FALSE}
 # inaug.info
@@ -112,7 +112,7 @@ inaug.repu <- inaug[inaug$Party == "Republican", ]
 
 # Step.2 Word Cloud
 
-Let's look at the word cloud first! It is obviously that the two parties used very different words in their speech, because in the two word clouds, the words are not the same. From the first wods cloud, we can see that the most frequent used words by Democratics are "people", "will", "government", "nation", "can", and so on. However, Republican often use "stringent", "farms", "regional", "marks", "bond" and so on.
+Let's look at the word cloud first! It is obviously that the two parties used very different words in their speech, because in the two word clouds, the words are not the same. From the first wods cloud, we can see that the most frequently used words by Democratics are "people", "will", "government", "nation", "can", and so on. However, Republican often use "stringent", "farms", "regional", "marks", "bond" and so on.
 
 ```{r, echo = FALSE, message = FALSE, warning=FALSE}
 demo.all<-Corpus(DataframeSource(inaug.demo))
@@ -194,7 +194,7 @@ repu.dtm.order <- repu.dtm[order(repu.dtm$count, decreasing = TRUE), ]
 
 ```
 
-Although, the words used by Democratic and Republican seems look like not the same, we may want to ask "are the words' sentiemnts also different?" Thus, I used the NRC Sentiment here, and calculated the word frequencies in each eight different sentiments, in NRC. 
+Although, the words used by Democratic and Republican seems look like not the same, we may want to ask "are the words' sentiemnts also different?" Thus, I used the NRC Sentiment, and calculated the words frequencies in each eight different sentiments, in NRC. 
 
 # Step.4 NRC Words Sentiments
 
@@ -224,7 +224,7 @@ barplot(colSums(table(repu.sum.emotion.nrc)), col = "lightskyblue1",
         border = NA, cex.names=0.7)
 ```
 
-From the two plots above, we find that the word frequency in different sentiments from the two parties are almost the same. Both of parties used the positive terms most, and used the disgust and surprise terms less. Is the result related to the sentiment lexicons, NRC? so I changed to use the Afinn sentiment lexicon, and did a similar pair of graphs below.
+From the two plots above, we find that the words frequencies in different sentiments from the two parties are almost the same. Both of parties used the positive terms most, and used the disgust and surprise terms less. Is the result related to the sentiment lexicons, NRC? so I changed to use another sentiment lexicon, Afinn, and did a similar pair of graphs below.
 
 # Step.5 Afinn Words Sentiments
 
@@ -262,7 +262,7 @@ The two graphs are also almost the same, except the Repulican used a slightly mo
 
 # Step.6 Number of Words Used in Inaugral Speeches
 
-Besides, the relationship between the words and the words sentiments, we can also study if there is any difference in the number of words used in inaugral Speeches between the two parties. I plot a graph which is the inaugural speeches' dates against the number of words used in that date. 
+Besides, the relationship between the words and the words sentiments, we can also study if there is any difference in the number of words used in inaugral Speeches between the two parties. I ploted a graph which is the inaugural speeches' dates against the number of words used in that date. 
 
 The blue dots indicate the Democratic, and the red dots indicate the Repulican.
 
@@ -275,6 +275,6 @@ ggplot() +
        x = "Inaugural Dates", y = "Inaugural Words")
 ```
 
-We can see the variace in the number of words is large at the begining. Some speeches have more than 4000 words, but some speeches have less than 1000 words. However, after 1950, the number of words are approximately around 2000 in both both parties. We can see there is probably a trend, which both parties will have similar the number of words in their speeches.
+We can see the variace in the number of words is large at the begining. Some speeches have more than 4000 words, but some speeches have less than 1000 words. However, after 1950, the number of words are approximately around 2000 in both parties. We can see there is probably a trend, which both parties will have similar the number of words in their speeches.
 
 Above all, we find there are some differences and similarities between the two parties, Democratic and Repulican. For example, the words in inaugural speeches between the two parties are different, but the words sentiments are very similar, and also the number of words in speeches tends to be the same. 
